@@ -1,6 +1,9 @@
-import Ozeki.Libs.Rest.*;
+package SendSMS;
 
-public class Main {
+import Ozeki.Libs.Rest.*;
+import java.time.LocalDateTime;
+
+public class SendScheduledSms {
 
     public static void main(String[] args) {
 
@@ -11,7 +14,8 @@ public class Main {
 
         var msg = new Message();
         msg.ToAddress = "+36201111111";
-        msg.Text = "Hello world";
+        msg.Text = "Hello world!";
+        msg.TimeToSend = LocalDateTime.parse("2021-06-11T13:52:00");
 
         var api = new MessageApi(configuration);
         
