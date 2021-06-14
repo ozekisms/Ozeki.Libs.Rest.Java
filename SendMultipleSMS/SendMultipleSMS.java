@@ -1,9 +1,8 @@
-package SendSMS;
+package SendMultipleSMS;
 
 import Ozeki.Libs.Rest.*;
 
-public class SendMultiSms {
-
+public class SendMultipleSMS {
     public static void main(String[] args) {
 
         var configuration = new Configuration();
