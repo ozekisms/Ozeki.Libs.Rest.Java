@@ -22,3 +22,5 @@ public class SendSMS {
         System.out.println(result);
     }
 }
+
+//If the repository got updated, you can download the freshest version of the Ozeki.Libs.Rest.Java
