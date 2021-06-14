@@ -1,7 +1,7 @@
 package SendSMS;
 
 import Ozeki.Libs.Rest.*;
-
+//In this video, I'm going to show you what happens if the Ozeki.Libs.Rest.Java repository gets updated.
 public class SendSMS {
 
     public static void main(String[] args) {
