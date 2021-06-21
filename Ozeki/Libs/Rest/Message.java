@@ -59,6 +59,70 @@ public class Message {
         IsViewReportRequested = true;
     }
 
+    public Message(JSONObject message) {
+
+        if (message.has("message_id") && message.getString("message_id").length() != 0) {
+            this.ID = message.getString("message_id");
+        }
+        if (message.has("from_connection") && message.getString("from_connection").length() != 0) {
+            this.FromConnection = message.getString("from_connection");
+        }
+        if (message.has("from_address") && message.getString("from_address").length() != 0) {
+            this.FromAddress = message.getString("from_address");
+        }
+        if (message.has("from_station") && message.getString("from_station").length() != 0) {
+            this.FromStation = message.getString("from_station");
+        }
+        if (message.has("to_connection") && message.getString("to_connection").length() != 0) {
+            this.ToConnection = message.getString("to_connection");
+        }
+        if (message.has("to_address") && message.getString("to_address").length() != 0) {
+            this.ToAddress = message.getString("to_address");
+        }
+        if (message.has("to_station") && message.getString("to_station").length() != 0) {
+            this.ToStation = message.getString("to_station");
+        }
+        if (message.has("text") && message.getString("text").length() != 0) {
+            this.Text = message.getString("text");
+        }
+        if (message.has("create_date") && message.getString("create_date").length() != 0) {
+            this.CreateDate = LocalDateTime.parse(message.getString("create_date"), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        }
+        if (message.has("valid_until") && message.getString("valid_until").length() != 0) {
+            this.ValidUntil = LocalDateTime.parse(message.getString("valid_until"), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        }
+        if (message.has("time_to_send") && message.getString("time_to_send").length() != 0) {
+            this.TimeToSend = LocalDateTime.parse(message.getString("time_to_send"), DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
+        }
+        if (message.has("submit_report_requested")) {
+            this.IsSubmitReportRequested = message.getBoolean("submit_report_requested");
+        }
+        if (message.has("view_report_requested")) {
+            this.IsViewReportRequested = message.getBoolean("view_report_requested");
+        }
+        if (message.has("delivery_report_requested")) {
+            this.IsDeliveryReportRequested = message.getBoolean("delivery_report_requested");
+        }
+        if (message.has("tags")) {
+            var tags = message.getJSONArray("tags");
+            for (int i = 0; i < tags.length(); i++) {
+                var object = tags.getJSONObject(i);
+                this.Tags.put(object.getString("name"), object.getString("value"));
+            }
+        }
+    }
+
+    public Message(String messageID) {
+        if (!messageID.equals("")) {
+            this.ID = messageID;
+        }
+    }
+
+    @Override
+    public String toString() {
+        return String.format("->%s '%s'", ToAddress, Text);
+    }
+
     //Create the json format for the API
     public JSONObject jsonVal() {
 

@@ -1,9 +1,9 @@
-package SendScheduledSMS;
+package SendScheduledSms;
 
 import Ozeki.Libs.Rest.*;
 import java.time.LocalDateTime;
 
-public class SendScheduledSMS {
+public class SendScheduledSms {
     public static void main(String[] args) {
 
         var configuration = new Configuration();

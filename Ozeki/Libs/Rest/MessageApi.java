@@ -1,13 +1,22 @@
 package Ozeki.Libs.Rest;
 
+import Ozeki.Libs.Rest.*;
+import Ozeki.Libs.Rest.Folder;
+import Ozeki.Libs.Rest.Results.MessageManipulateResults.MessageDeleteResult.MessageDeleteResult;
+import Ozeki.Libs.Rest.Results.MessageManipulateResults.MessageMarkResult.MessageMarkResult;
+import Ozeki.Libs.Rest.Results.MessageReceiveResult.MessageReceiveResult;
+import Ozeki.Libs.Rest.Results.MessageSend.DeliveryStatus;
+import Ozeki.Libs.Rest.Results.MessageSend.MessageSendResult;
+import Ozeki.Libs.Rest.Results.MessageSend.MessageSendResults;
 import Ozeki.Libs.Rest.org.json.*;
+
 import java.net.http.*;
 import java.net.URI;
 import java.util.*;
 
 public class MessageApi {
 
-    Configuration _configuration;
+    public Configuration _configuration;
 
     public MessageApi(Configuration configuration){
         _configuration = configuration;
@@ -26,7 +35,7 @@ public class MessageApi {
     }
 
     //Function to create create request body out of multiple messages
-    private Ozeki.Libs.Rest.org.json.JSONObject createRequestBody (Message[] messages) {
+    private JSONObject createRequestBody (Message[] messages) {
 
         var Messages = new Ozeki.Libs.Rest.org.json.JSONObject();
         var arrayoOfMessages = new JSONArray();
@@ -41,7 +50,7 @@ public class MessageApi {
     }
 
     //Function to create request body string out of one message
-    private Ozeki.Libs.Rest.org.json.JSONObject createRequestBody (Message message) {
+    private JSONObject createRequestBody (Message message) {
 
         var Messages = new Ozeki.Libs.Rest.org.json.JSONObject();
 
@@ -85,7 +94,7 @@ public class MessageApi {
     }
 
     //Function to perform a POST request to the API
-    private String DoRequestPost(String url, String authorizationHeader, String messages, boolean manipulate)
+    private JSONObject DoRequestPost(String url, String authorizationHeader, String messages)
     {
         try {
             HttpClient client = HttpClient.newHttpClient();
@@ -95,18 +104,11 @@ public class MessageApi {
                 .headers("Authorization", authorizationHeader, "Content-Type", "application/json", "Accept", "application/json")
                 .build();
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            if (manipulate) {
-                if (getMessageResponseManipulate(response)) {
-                    return "Your request have been received";
-                }  else {
-                    return "An error occurred during the request..";
-                }
-            } else {
-                return getMessageResponse(response);
-            }
+            return new JSONObject(response.body());
         } catch (Exception e) {
-            return "";
+            System.out.println(e);
         }
+        return new JSONObject();
     }
 
     //Function to perform a GET request to the API
@@ -128,110 +130,190 @@ public class MessageApi {
 
     //Function to create an url to send  a message
     private String createUriToSendMessage(String url) {
-        return String.format("%s?action=sendmsg", url);
+        var baseurl = url.split("\\?")[0];
+        return String.format("%s?action=sendmsg", baseurl);
     }
 
     //Function to create an url to delete a message
     private String createUriToDeleteMessage(String url) {
-        return String.format("%s?action=deletemsg", url);
+        var baseurl = url.split("\\?")[0];
+        return String.format("%s?action=deletemsg", baseurl);
     }
 
     //Function to create an url to mark a message
     private String createUriToMarkMessage(String url) {
-        return String.format("%s?action=markmsg", url);
+        var baseurl = url.split("\\?")[0];
+        return String.format("%s?action=markmsg", baseurl);
     }
 
     //Function to create an url to receive a message
     private String createUriToReceiveMessage(String url, Folder folder) {
-        return String.format("%s?action=receivemsg&folder=%s", url, folder.toString());
+        var baseurl = url.split("\\?")[0];
+        return String.format("%s?action=receivemsg&folder=%s", baseurl, folder.toString());
     }
 
-    private String getMessageResponse(HttpResponse<String> response){
-        var jsonObject = new Ozeki.Libs.Rest.org.json.JSONObject(response.body());
-        var data = jsonObject.getJSONObject("data");
+    private MessageSendResults getMessageResponse(JSONObject response){
+        var data = response.getJSONObject("data");
         if (data.getInt("total_count") == 1) {
             var messages = data.getJSONArray("messages");
-            var message = messages.getJSONObject(0);
-            return String.format("Success, ->%s  '%s'", message.getString("to_address"), message.getString("text"));
+            var message = new Message(messages.getJSONObject(0));
+            var msgresult = new MessageSendResult(message, DeliveryStatus.Success);
+            ArrayList<MessageSendResult> results = new ArrayList<MessageSendResult>(1);
+            results.add(msgresult);
+            return new MessageSendResults(data.getInt("total_count"), data.getInt("success_count"), data.getInt("failed_count"), results);
         } else if (data.getInt("total_count") > 1) {
-            return String.format("Total: %d. Success: %d. Failed: %d.", data.getInt("total_count"), data.getInt("success_count"), data.getInt("failed_count"));
+            var messages = data.getJSONArray("messages");
+            ArrayList<MessageSendResult> results = new ArrayList<MessageSendResult>(messages.length());
+            for (int i = 0; i < messages.length(); i++) {
+                var msg = new Message(messages.getJSONObject(i));
+                var msgresult = new MessageSendResult(msg, DeliveryStatus.Success);
+                results.add(msgresult);
+            }
+            return new MessageSendResults(data.getInt("total_count"), data.getInt("success_count"), data.getInt("failed_count"), results);
         } else {
-            return "Total: 0. Success: 0. Failed: 0.";
+            return new MessageSendResults(0, 0, 0, new ArrayList<MessageSendResult>(0));
         }
     }
 
-    private boolean getMessageResponseManipulate(HttpResponse<String> response){
-        var jsonObject = new Ozeki.Libs.Rest.org.json.JSONObject(response.body());
-        return jsonObject.getString("response_code").equals("SUCCESS");
+    private MessageDeleteResult getMessageResponseDelete(JSONObject response, Message[] messages){
+        var msgs = response.getJSONObject("data").getJSONArray("message_ids");
+        var folder = response.getJSONObject("data").get("folder").toString();
+        if (response.getString("response_code").equals("SUCCESS")) {
+            var messages_failed = new String[messages.length-msgs.length()];
+            var messages_success = new String[msgs.length()];
+            var succIndx = 0;
+            var failIndx = 0;
+            for (var message : messages) {
+                var success = false;
+                for (var msg : msgs) {
+                    if (msg.toString().equals(message.ID)) {
+                        success = true;
+                    }
+                }
+                if (success) {
+                    messages_success[succIndx] = message.ID;
+                    succIndx += 1;
+                } else {
+                    messages_failed[failIndx] = message.ID;
+                    failIndx += 1;
+                }
+            }
+            return new MessageDeleteResult(Folder.Null.parseFolder(folder), messages_success, messages_failed);
+        }
+        return new MessageDeleteResult(Folder.Null.parseFolder(folder), new String[]{}, new String[]{});
+    }
+
+    private Boolean getMessageResponseDelete(JSONObject response, Message message) {
+        var messages = response.getJSONObject("data").getJSONArray("message_ids");
+        if (response.getString("response_code").equals("SUCCESS")) {
+            if (messages.length() == 1 && message.ID.equals(messages.get(0).toString())) {
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
+    }
+
+    private MessageMarkResult getMessageResponseMark(JSONObject response, Message[] messages){
+        var msgs = response.getJSONObject("data").getJSONArray("message_ids");
+        var folder = response.getJSONObject("data").get("folder").toString();
+        if (response.getString("response_code").equals("SUCCESS")) {
+            var messages_failed = new String[messages.length-msgs.length()];
+            var messages_success = new String[msgs.length()];
+            var succIndx = 0;
+            var failIndx = 0;
+            for (var message : messages) {
+                var success = false;
+                for (var msg : msgs) {
+                    if (msg.toString().equals(message.ID)) {
+                        success = true;
+                    }
+                }
+                if (success) {
+                    messages_success[succIndx] = message.ID;
+                    succIndx += 1;
+                } else {
+                    messages_failed[failIndx] = message.ID;
+                    failIndx += 1;
+                }
+            }
+            return new MessageMarkResult(Folder.Null.parseFolder(folder), messages_success, messages_failed);
+        }
+        return new MessageMarkResult(Folder.Null.parseFolder(folder), new String[]{}, new String[]{});
+    }
+
+    private Boolean getMessageResponseMark(JSONObject response, Message message) {
+        var messages = response.getJSONObject("data").getJSONArray("message_ids");
+        if (response.getString("response_code").equals("SUCCESS")) {
+            if (messages.length() == 1 && message.ID.equals(messages.get(0).toString())) {
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            return false;
+        }
     }
 
     //Function to send messages
-    public String Send(Message[] messages) {
+    public MessageSendResults Send(Message[] messages) {
         var authorizationHeader = createAuthHeader(_configuration.Username, _configuration.Password);
-        var msgs = createRequestBody(messages);
-        return DoRequestPost(createUriToSendMessage(_configuration.BaseUrl), authorizationHeader, msgs.toString(), false);
+        var requestBody = createRequestBody(messages);
+        return this.getMessageResponse(DoRequestPost(createUriToSendMessage(_configuration.BaseUrl), authorizationHeader, requestBody.toString()));
     }
 
     //Function to send message
-    public String Send(Message message) {
+    public MessageSendResult Send(Message message) {
         var authorizationHeader = createAuthHeader(_configuration.Username, _configuration.Password);
-        var msg = createRequestBody(message);
-        return DoRequestPost(createUriToSendMessage(_configuration.BaseUrl), authorizationHeader, msg.toString(), false);
+        var requestBody = createRequestBody(message);
+        return this.getMessageResponse(DoRequestPost(createUriToSendMessage(_configuration.BaseUrl), authorizationHeader, requestBody.toString())).results.get(0);
     }
 
     //Function to delete message
-    public String Delete(Folder folder, Message message) {
+    public Boolean Delete(Folder folder, Message message) {
         var authHeader = createAuthHeader(_configuration.Username, _configuration.Password);
         var requestBody = createRequestBodyToManipulate(folder, message);
-        return DoRequestPost(createUriToDeleteMessage(_configuration.BaseUrl), authHeader, requestBody.toString(), true);
+        return this.getMessageResponseDelete(this.DoRequestPost(createUriToDeleteMessage(_configuration.BaseUrl), authHeader, requestBody.toString()), message);
     }
 
     //Function to delete multiple message
-    public String Delete(Folder folder, Message[] messages) {
+    public MessageDeleteResult Delete(Folder folder, Message[] messages) {
         var authHeader = createAuthHeader(_configuration.Username, _configuration.Password);
         var requestBody = createRequestBodyToManipulate(folder, messages);
-        return DoRequestPost(createUriToDeleteMessage(_configuration.BaseUrl), authHeader, requestBody.toString(), true);
+        return this.getMessageResponseDelete(DoRequestPost(createUriToDeleteMessage(_configuration.BaseUrl), authHeader, requestBody.toString()), messages);
     }
 
-    //Function to delete messages from an Array
-    private void Delete(ArrayList<Message> messages) {
-        var authHeader = createAuthHeader(_configuration.Username, _configuration.Password);
-        var requestBody = createRequestBodyToManipulate(Folder.Inbox, messages);
-        DoRequestPost(createUriToDeleteMessage(_configuration.BaseUrl), authHeader, requestBody.toString(), true);
-    }
-
-    //Function to delete message
-    public String Mark(Folder folder, Message message) {
+    //Function to mark message
+    public Boolean Mark(Folder folder, Message message) {
         var authHeader = createAuthHeader(_configuration.Username, _configuration.Password);
         var requestBody = createRequestBodyToManipulate(folder, message);
-        return DoRequestPost(createUriToMarkMessage(_configuration.BaseUrl), authHeader, requestBody.toString(), true);
+        return this.getMessageResponseMark(DoRequestPost(createUriToMarkMessage(_configuration.BaseUrl), authHeader, requestBody.toString()), message);
     }
 
-    //Function to delete multiple message
-    public String Mark(Folder folder, Message[] messages) {
+    //Function to mark multiple message
+    public MessageMarkResult Mark(Folder folder, Message[] messages) {
         var authHeader = createAuthHeader(_configuration.Username, _configuration.Password);
         var requestBody = createRequestBodyToManipulate(folder, messages);
-        return DoRequestPost(createUriToMarkMessage(_configuration.BaseUrl), authHeader, requestBody.toString(), true);
+        return this.getMessageResponseMark(DoRequestPost(createUriToMarkMessage(_configuration.BaseUrl), authHeader, requestBody.toString()), messages);
     }
 
     //Function to delete message
-    public String DownloadIncoming() {
-        var result = "";
+    public MessageReceiveResult DownloadIncoming() {
         var authHeader = createAuthHeader(_configuration.Username, _configuration.Password);
-        var response = DoRequestGet(createUriToReceiveMessage(_configuration.BaseUrl, Folder.Inbox), authHeader);
-        var jsonObject = new JSONObject(response);
-        var data = jsonObject.getJSONObject("data");
-        var messages = data.getJSONArray("data");
-        var messageIds = new ArrayList<Message>();
-        result += String.format("There are %d messages in your Inbox folder:\n", messages.length());
+        var response = new JSONObject(DoRequestGet(createUriToReceiveMessage(_configuration.BaseUrl, Folder.Inbox), authHeader));
+        var limit = response.getJSONObject("data").getString("limit");
+        var folder = response.getJSONObject("data").getString("folder");
+        var messages = response.getJSONObject("data").getJSONArray("data");
+        var msgs = new Message[messages.length()];
+        var msgsIndex = 0;
         for (int i = 0; i < messages.length(); i++) {
-            var msg = messages.getJSONObject(i);
-            var messageToDelete = new Message();
-            messageToDelete.ID =  msg.getString("message_id");
-            messageIds.add(messageToDelete);
-            result += String.format("From: %s - Text: %s \n", msg.getString("from_address"), msg.getString("text"));
+            var msg = new Message(messages.getJSONObject(i));
+            msgs[msgsIndex] = msg;
+            msgsIndex += 1;
         }
-        Delete(messageIds);
-        return result;
+        Delete(Folder.Inbox, msgs);
+        return new MessageReceiveResult(Folder.Null.parseFolder(folder), limit, msgs);
     }
 }

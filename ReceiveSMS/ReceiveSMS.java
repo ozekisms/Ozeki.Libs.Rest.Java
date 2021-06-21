@@ -1,8 +1,8 @@
-package ReceiveSMS;
+package ReceiveSms;
 
 import Ozeki.Libs.Rest.*;
 
-public class ReceiveSMS {
+public class ReceiveSms {
 
     public static void main(String[] args) {
 

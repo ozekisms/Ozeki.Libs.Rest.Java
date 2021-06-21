@@ -1,8 +1,8 @@
-package DeleteSMS;
+package DeleteSms;
 
 import Ozeki.Libs.Rest.*;
 
-public class DeleteSMS {
+public class DeleteSms {
 
     public static void main(String[] args) {
 
