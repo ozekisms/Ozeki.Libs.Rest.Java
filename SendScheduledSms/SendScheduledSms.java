@@ -9,7 +9,7 @@ public class SendScheduledSms {
         var configuration = new Configuration();
         configuration.Username = "http_user";
         configuration.Password = "qwe123";
-        configuration.BaseUrl = "http://127.0.0.1:9509/api";
+        configuration.ApiUrl = "http://127.0.0.1:9509/api";
 
         var msg = new Message();
         msg.ToAddress = "+36201111111";

@@ -130,26 +130,26 @@ public class MessageApi {
 
     //Function to create an url to send  a message
     private String createUriToSendMessage(String url) {
-        var baseurl = url.split("\\?")[0];
-        return String.format("%s?action=sendmsg", baseurl);
+        var ApiUrl = url.split("\\?")[0];
+        return String.format("%s?action=sendmsg", ApiUrl);
     }
 
     //Function to create an url to delete a message
     private String createUriToDeleteMessage(String url) {
-        var baseurl = url.split("\\?")[0];
-        return String.format("%s?action=deletemsg", baseurl);
+        var ApiUrl = url.split("\\?")[0];
+        return String.format("%s?action=deletemsg", ApiUrl);
     }
 
     //Function to create an url to mark a message
     private String createUriToMarkMessage(String url) {
-        var baseurl = url.split("\\?")[0];
-        return String.format("%s?action=markmsg", baseurl);
+        var ApiUrl = url.split("\\?")[0];
+        return String.format("%s?action=markmsg", ApiUrl);
     }
 
     //Function to create an url to receive a message
     private String createUriToReceiveMessage(String url, Folder folder) {
-        var baseurl = url.split("\\?")[0];
-        return String.format("%s?action=receivemsg&folder=%s", baseurl, folder.toString());
+        var ApiUrl = url.split("\\?")[0];
+        return String.format("%s?action=receivemsg&folder=%s", ApiUrl, folder.toString());
     }
 
     private MessageSendResults getMessageResponse(JSONObject response){
@@ -261,48 +261,48 @@ public class MessageApi {
     public MessageSendResults Send(Message[] messages) {
         var authorizationHeader = createAuthHeader(_configuration.Username, _configuration.Password);
         var requestBody = createRequestBody(messages);
-        return this.getMessageResponse(DoRequestPost(createUriToSendMessage(_configuration.BaseUrl), authorizationHeader, requestBody.toString()));
+        return this.getMessageResponse(DoRequestPost(createUriToSendMessage(_configuration.ApiUrl), authorizationHeader, requestBody.toString()));
     }
 
     //Function to send message
     public MessageSendResult Send(Message message) {
         var authorizationHeader = createAuthHeader(_configuration.Username, _configuration.Password);
         var requestBody = createRequestBody(message);
-        return this.getMessageResponse(DoRequestPost(createUriToSendMessage(_configuration.BaseUrl), authorizationHeader, requestBody.toString())).results.get(0);
+        return this.getMessageResponse(DoRequestPost(createUriToSendMessage(_configuration.ApiUrl), authorizationHeader, requestBody.toString())).results.get(0);
     }
 
     //Function to delete message
     public Boolean Delete(Folder folder, Message message) {
         var authHeader = createAuthHeader(_configuration.Username, _configuration.Password);
         var requestBody = createRequestBodyToManipulate(folder, message);
-        return this.getMessageResponseDelete(this.DoRequestPost(createUriToDeleteMessage(_configuration.BaseUrl), authHeader, requestBody.toString()), message);
+        return this.getMessageResponseDelete(this.DoRequestPost(createUriToDeleteMessage(_configuration.ApiUrl), authHeader, requestBody.toString()), message);
     }
 
     //Function to delete multiple message
     public MessageDeleteResult Delete(Folder folder, Message[] messages) {
         var authHeader = createAuthHeader(_configuration.Username, _configuration.Password);
         var requestBody = createRequestBodyToManipulate(folder, messages);
-        return this.getMessageResponseDelete(DoRequestPost(createUriToDeleteMessage(_configuration.BaseUrl), authHeader, requestBody.toString()), messages);
+        return this.getMessageResponseDelete(DoRequestPost(createUriToDeleteMessage(_configuration.ApiUrl), authHeader, requestBody.toString()), messages);
     }
 
     //Function to mark message
     public Boolean Mark(Folder folder, Message message) {
         var authHeader = createAuthHeader(_configuration.Username, _configuration.Password);
         var requestBody = createRequestBodyToManipulate(folder, message);
-        return this.getMessageResponseMark(DoRequestPost(createUriToMarkMessage(_configuration.BaseUrl), authHeader, requestBody.toString()), message);
+        return this.getMessageResponseMark(DoRequestPost(createUriToMarkMessage(_configuration.ApiUrl), authHeader, requestBody.toString()), message);
     }
 
     //Function to mark multiple message
     public MessageMarkResult Mark(Folder folder, Message[] messages) {
         var authHeader = createAuthHeader(_configuration.Username, _configuration.Password);
         var requestBody = createRequestBodyToManipulate(folder, messages);
-        return this.getMessageResponseMark(DoRequestPost(createUriToMarkMessage(_configuration.BaseUrl), authHeader, requestBody.toString()), messages);
+        return this.getMessageResponseMark(DoRequestPost(createUriToMarkMessage(_configuration.ApiUrl), authHeader, requestBody.toString()), messages);
     }
 
     //Function to delete message
     public MessageReceiveResult DownloadIncoming() {
         var authHeader = createAuthHeader(_configuration.Username, _configuration.Password);
-        var response = new JSONObject(DoRequestGet(createUriToReceiveMessage(_configuration.BaseUrl, Folder.Inbox), authHeader));
+        var response = new JSONObject(DoRequestGet(createUriToReceiveMessage(_configuration.ApiUrl, Folder.Inbox), authHeader));
         var limit = response.getJSONObject("data").getString("limit");
         var folder = response.getJSONObject("data").getString("folder");
         var messages = response.getJSONObject("data").getJSONArray("data");

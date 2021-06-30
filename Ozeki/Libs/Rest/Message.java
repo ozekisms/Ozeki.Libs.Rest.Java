@@ -120,7 +120,7 @@ public class Message {
 
     @Override
     public String toString() {
-        return String.format("->%s '%s'", ToAddress, Text);
+        return String.format("%s->%s '%s'", FromAddress, ToAddress, Text);
     }
 
     //Create the json format for the API

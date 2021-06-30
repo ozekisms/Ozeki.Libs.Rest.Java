@@ -8,7 +8,7 @@ public class SendMultipleSms {
         var configuration = new Configuration();
         configuration.Username = "http_user";
         configuration.Password = "qwe123";
-        configuration.BaseUrl = "http://127.0.0.1:9509/api";
+        configuration.ApiUrl = "http://127.0.0.1:9509/api";
 
         var msg1 = new Message();
         msg1.ToAddress = "+36201111111";
