@@ -35,10 +35,9 @@ public class Message {
         var TagsIterator = Tags.entrySet().iterator();
         while (TagsIterator.hasNext()) {
             var element  = (Map.Entry)TagsIterator.next();
-            String key = ((String)element.getKey());
-            String value = ((String)element.getValue());
             var msg = new JSONObject();
-            msg.put(key, value);
+            msg.put("name", (String)element.getKey());
+            msg.put("value", (String)element.getValue());
             tags.put(msg);
         }
         return tags;
@@ -167,7 +166,7 @@ public class Message {
         jsonObject.put("delivery_report_requested", this.IsDeliveryReportRequested);
         jsonObject.put("view_report_requested", this.IsViewReportRequested);
         if (!this.Tags.isEmpty()) {
-            jsonObject.put("tags", this.getTags().toString());
+            jsonObject.put("tags", this.getTags());
         }
         return jsonObject;
     }
